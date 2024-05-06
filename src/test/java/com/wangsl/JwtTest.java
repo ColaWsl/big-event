@@ -37,4 +37,5 @@ public class JwtTest {
 		Map<String, Claim> claims = decodedJWT.getClaims();
 		System.out.println(claims.get("user"));
 	}
+
 }

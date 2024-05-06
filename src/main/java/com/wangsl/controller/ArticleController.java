@@ -12,9 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/article")
 public class ArticleController {
 
-	@RequestMapping("/list")
-	public Result list(@RequestHeader(name = "Authorization") String token, HttpServletResponse response){
-		return Result.success("list article");
-	}
+
 
 }

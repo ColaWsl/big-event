@@ -1,7 +1,5 @@
 package com.wangsl.utils;
 
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * ThreadLocal 工具类
@@ -20,7 +18,6 @@ public class ThreadLocalUtil {
     public static void set(Object value){
         THREAD_LOCAL.set(value);
     }
-
 
     //清除ThreadLocal 防止内存泄漏
     public static void remove(){

@@ -4,15 +4,16 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.wangsl.pojo.Result;
 import com.wangsl.pojo.User;
+import com.wangsl.pojo.vo.UpdatePwdVo;
 import com.wangsl.service.UserService;
 import com.wangsl.utils.JwtUtil;
 import com.wangsl.utils.Md5Util;
+import com.wangsl.utils.ThreadLocalUtil;
 import jakarta.validation.constraints.Pattern;
+import org.hibernate.validator.constraints.URL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -43,7 +44,6 @@ public class UserController {
 		}
 	}
 
-
 	@PostMapping("/login")
 	public Result login(@Pattern(regexp = "^\\S{5,16}$") String username,
 	                    @Pattern(regexp = "^\\S{5,16}$") String password){
@@ -62,4 +62,42 @@ public class UserController {
 		}
 		return Result.error("密码错误");
 	}
+
+	@GetMapping("/userInfo")
+	public Result userInfo(){
+		Map<String, Object> map = ThreadLocalUtil.get();
+		String username = (String) map.get("username");
+		User user = userService.findByUsername(username);
+		return Result.success(user);
+	}
+
+	@PutMapping("/update")
+	public Result update(@RequestBody @Validated User user){
+		userService.update(user);
+		return Result.success();
+	}
+
+	@PatchMapping("/updateAvatar")
+	public Result updateAvatar(@RequestParam @URL String avatarUrl){
+		userService.updateAvatar(avatarUrl);
+		return Result.success();
+	}
+
+	@PatchMapping("/updatePwd")
+	public Result updatePwd(@RequestBody @Validated UpdatePwdVo updatePwdVo){
+		// 校验参数
+		if(!updatePwdVo.getNew_pwd().equals(updatePwdVo.getRe_pwd()))
+			return Result.error("新密码输入不一致");
+
+		Map<String, Object> map = ThreadLocalUtil.get();
+		String username = (String) map.get("username");
+		// 验证旧密码
+		User user = userService.findByUsername(username);
+		if(!user.getPassword().equals(Md5Util.getMD5String(updatePwdVo.getOld_pwd())))
+			return Result.error("密码错误");
+		// 更新密码
+		userService.updatePassword(updatePwdVo.getNew_pwd());
+		return Result.success();
+	}
+
 }
