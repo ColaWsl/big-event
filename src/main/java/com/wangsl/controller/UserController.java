@@ -1,7 +1,5 @@
 package com.wangsl.controller;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
 import com.wangsl.pojo.Result;
 import com.wangsl.pojo.User;
 import com.wangsl.pojo.vo.UpdatePwdVo;
@@ -10,14 +8,16 @@ import com.wangsl.utils.JwtUtil;
 import com.wangsl.utils.Md5Util;
 import com.wangsl.utils.ThreadLocalUtil;
 import jakarta.validation.constraints.Pattern;
+import org.apache.ibatis.annotations.Param;
 import org.hibernate.validator.constraints.URL;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Validated
 @RestController
@@ -26,9 +26,12 @@ public class UserController {
 
 	private final UserService userService;
 
+	private final StringRedisTemplate stringRedisTemplate;
+
 	@Autowired
-	public UserController(UserService userService){
+	public UserController(UserService userService, StringRedisTemplate stringRedisTemplate){
 		this.userService = userService;
+		this.stringRedisTemplate = stringRedisTemplate;
 	}
 
 	@PostMapping("/register")
@@ -58,6 +61,8 @@ public class UserController {
 			claims.put("id", user.getId());
 			claims.put("username", user.getUsername());
 			String token = JwtUtil.genToken(claims);
+			// token 存入 redis
+			stringRedisTemplate.opsForValue().set(token, token, 1, TimeUnit.HOURS);
 			return Result.success(token);
 		}
 		return Result.error("密码错误");
@@ -84,7 +89,7 @@ public class UserController {
 	}
 
 	@PatchMapping("/updatePwd")
-	public Result updatePwd(@RequestBody @Validated UpdatePwdVo updatePwdVo){
+	public Result updatePwd(@RequestBody @Validated UpdatePwdVo updatePwdVo, @RequestHeader("Authorization") String token){
 		// 校验参数
 		if(!updatePwdVo.getNew_pwd().equals(updatePwdVo.getRe_pwd()))
 			return Result.error("新密码输入不一致");
@@ -97,6 +102,8 @@ public class UserController {
 			return Result.error("密码错误");
 		// 更新密码
 		userService.updatePassword(updatePwdVo.getNew_pwd());
+		// 删除redis 中的token
+		stringRedisTemplate.delete(token);
 		return Result.success();
 	}
 
