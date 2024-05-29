@@ -10,7 +10,7 @@ public class JwtUtil {
 
     private static final String KEY = "wangsl";
 
-	private static final long EXP = 1000 * 60 * 60 * 12;
+	private static final long EXP = 1000 * 60 * 60 * 12; // 12个小时
 	
 	//接收业务数据,生成token并返回
     public static String genToken(Map<String, Object> claims) {
