@@ -9,6 +9,7 @@ import com.wangsl.utils.Md5Util;
 import com.wangsl.utils.ThreadLocalUtil;
 import jakarta.validation.constraints.Pattern;
 import org.apache.ibatis.annotations.Param;
+import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
 import org.hibernate.validator.constraints.URL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -61,11 +62,19 @@ public class UserController {
 			claims.put("id", user.getId());
 			claims.put("username", user.getUsername());
 			String token = JwtUtil.genToken(claims);
-			// token 存入 redis
-			stringRedisTemplate.opsForValue().set(token, token, 1, TimeUnit.HOURS);
+			// token 存入 redis 并设置与JWT相同的过期时间 12h
+			stringRedisTemplate.opsForValue().set(token, token, 12, TimeUnit.HOURS);
 			return Result.success(token);
 		}
 		return Result.error("密码错误");
+	}
+
+	// 登出
+	@GetMapping("/logout")
+	public Result logout(@RequestHeader("Authorization") String authorization){
+		// 从redis中删除当前token 即使JWT未过期但redis中不存在也无法通过校验
+		stringRedisTemplate.delete(authorization);
+		return Result.success();
 	}
 
 	@GetMapping("/userInfo")
